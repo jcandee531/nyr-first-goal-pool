@@ -9,6 +9,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
+      - key: TURSO_URL
+        value: libsql://nyr-first-goal-pool-jcandee531.aws-us-east-1.turso.io
+      - key: TURSO_AUTH_TOKEN
+        value: eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTgxMzY4NDMsImlkIjoiMjk4N2VkMTEtNTQxMC00MGM1LThhNDctYzJjMmQ0ZmRjMDdlIiwicmlkIjoiYTNkN2JlNmItZjAwYi00MTE0LWEyYTctMTJiMDU4MDQ0Mzk4In0.8Ma4x18_O2bIlR1ZMoA4q1ArGgXjMCQkb_KoPSgWASk57TEtqcddu2dUVWhNCyTcyIQQUd0avep1uOtoAHtjCQ
   - type: web
     name: nyr-pool-frontend
     env: static
