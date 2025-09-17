@@ -12,8 +12,11 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 16 }}>
-      <h1>NY Rangers First Goal Pool</h1>
-      <nav style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div className="site-header">
+        <h1>NY Rangers First Goal Pool</h1>
+        <img className="rangers-logo" alt="New York Rangers" src="https://upload.wikimedia.org/wikipedia/en/1/10/New_York_Rangers_logo.svg" />
+      </div>
+      <nav className="tab-nav">
         <button onClick={() => setTab('dashboard')} disabled={tab==='dashboard'}>Dashboard</button>
         <button onClick={() => setTab('picks')} disabled={tab==='picks'}>Picks</button>
         <button onClick={() => setTab('participants')} disabled={tab==='participants'}>Participants</button>
