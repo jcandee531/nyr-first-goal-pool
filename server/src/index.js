@@ -3,7 +3,7 @@ const cors = require("cors");
 const dayjs = require("dayjs");
 const { z } = require("zod");
 const db = require("./db");
-const { fetchSeasonSchedule, fetchGameFeed, computeFirstScorerAndCounts, getActiveRosterForGame, loadStaticSchedule } = require("./nhl");
+const { fetchSeasonSchedule, fetchGameFeed, computeFirstScorerAndCounts, getActiveRosterForGame, loadStaticSchedule, fetchNextGameLive } = require("./nhl");
 
 const app = express();
 app.use(cors());
@@ -61,6 +61,12 @@ app.get('/api/games', async (req, res) => {
 });
 
 app.get('/api/games/upcoming', async (req, res) => {
+  try {
+    // Prefer live next game from NHL
+    const live = await fetchNextGameLive();
+    if (live) return res.json(live);
+  } catch {}
+  // Fallback to DB
   const now = dayjs().toISOString();
   const row = await db.prepare("SELECT * FROM games WHERE date >= ? ORDER BY date LIMIT 1").get(now);
   res.json(row || null);

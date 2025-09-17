@@ -121,3 +121,22 @@ function loadStaticSchedule(season) {
 
 module.exports.loadStaticSchedule = loadStaticSchedule;
 
+async function fetchNextGameLive() {
+  const url = `https://statsapi.web.nhl.com/api/v1/teams/${RANGERS_TEAM_ID}?expand=team.schedule.next`;
+  const { data } = await axios.get(url);
+  const team = data?.teams?.[0];
+  const next = team?.nextGameSchedule?.dates?.[0]?.games?.[0];
+  if (!next) return null;
+  const isHome = next.teams?.home?.team?.id === RANGERS_TEAM_ID;
+  const opponentTeam = isHome ? next.teams?.away?.team : next.teams?.home?.team;
+  return {
+    id: next.gamePk,
+    date: dayjs(next.gameDate).toISOString(),
+    opponent: opponentTeam?.name || 'TBD',
+    home: isHome ? 1 : 0,
+    status: next.status?.detailedState || 'SCHEDULED',
+  };
+}
+
+module.exports.fetchNextGameLive = fetchNextGameLive;
+

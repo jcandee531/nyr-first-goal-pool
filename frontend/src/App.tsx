@@ -1,13 +1,12 @@
 import './App.css'
 import Participants from '@components/Participants'
-import Schedule from '@components/Schedule'
 import Picks from '@components/Picks'
 import Standings from '@components/Standings'
 import Dashboard from '@components/Dashboard'
 import Admin from '@components/Admin'
 import { useState } from 'react'
 
-type Tab = 'dashboard' | 'picks' | 'participants' | 'schedule' | 'standings' | 'admin'
+type Tab = 'dashboard' | 'picks' | 'participants' | 'standings' | 'admin'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -27,14 +26,12 @@ export default function App() {
         <button className={tab==='dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>Dashboard</button>
         <button className={tab==='picks' ? 'active' : ''} onClick={() => setTab('picks')}>Picks</button>
         <button className={tab==='participants' ? 'active' : ''} onClick={() => setTab('participants')}>Participants</button>
-        <button className={tab==='schedule' ? 'active' : ''} onClick={() => setTab('schedule')}>Schedule</button>
         <button className={tab==='standings' ? 'active' : ''} onClick={() => setTab('standings')}>Standings</button>
         <button className={tab==='admin' ? 'active' : ''} onClick={() => setTab('admin')}>Admin</button>
       </nav>
       {tab === 'dashboard' && <Dashboard />}
       {tab === 'picks' && <Picks />}
       {tab === 'participants' && <Participants />}
-      {tab === 'schedule' && <Schedule />}
       {tab === 'standings' && <Standings />}
       {tab === 'admin' && <Admin />}
     </div>
