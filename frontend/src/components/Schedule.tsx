@@ -2,16 +2,38 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, type Game } from '@api/client';
 
 export default function Schedule() {
-  const [season, setSeason] = useState('20242025');
+  const [season, setSeason] = useState('20252026');
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoImported, setAutoImported] = useState(false);
 
   const refresh = async () => {
     try { setGames(await api.listGames()); } catch (e:any) { setError(e.message); }
   };
 
   useEffect(() => { refresh(); }, []);
+
+  // Auto-import upcoming 2025-2026 season if not present yet
+  useEffect(() => {
+    const run = async () => {
+      if (autoImported) return;
+      const hasTarget = games.some(g => g.season === '20252026');
+      if (!hasTarget) {
+        try {
+          setLoading(true);
+          await api.importSeason('20252026');
+          await refresh();
+        } catch (e:any) {
+          // non-fatal; leave for manual import
+        } finally {
+          setLoading(false);
+          setAutoImported(true);
+        }
+      }
+    };
+    run();
+  }, [games, autoImported]);
 
   const importSeason = async (e: React.FormEvent) => {
     e.preventDefault();
