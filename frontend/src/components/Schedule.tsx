@@ -8,6 +8,19 @@ export default function Schedule() {
 
   const refresh = async () => {
     try {
+      // Try a static file first (bundled with the frontend)
+      try {
+        const staticRes = await fetch('/schedule-20252026.json', { cache: 'no-cache' });
+        if (staticRes.ok) {
+          const staticData = await staticRes.json();
+          if (Array.isArray(staticData) && staticData.length > 0) {
+            setGames(staticData as Game[]);
+            setSource('nhl');
+            return;
+          }
+        }
+      } catch {}
+
       const serverGames = await api.listGames();
       if (serverGames.length > 0) {
         setGames(serverGames);
