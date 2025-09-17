@@ -1,0 +1,13 @@
+{
+  "name": "nyr-first-goal-pool",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix frontend run dev",
+    "dev": "concurrently -k -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: nyr-pool-api
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    plan: free
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+  - type: web
+    name: nyr-pool-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE
+        fromService:
+          type: web
+          name: nyr-pool-api
+          envVarKey: RENDER_EXTERNAL_URL
