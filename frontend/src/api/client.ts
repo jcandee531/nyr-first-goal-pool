@@ -29,5 +29,8 @@ export const api = {
 
   computeGame: (gameId: number): Promise<{ ok: boolean }> => http(url(`/api/games/${gameId}/compute`), { method: 'POST' }),
   standings: (): Promise<Standing[]> => http(url('/api/standings')),
+  adminHealth: (): Promise<{ ok: boolean; dbMode: 'turso' | 'sqlite' }> => http(url('/api/admin/health')),
+  adminTestTurso: (u: string, t: string, adminKey?: string): Promise<{ ok: boolean }> =>
+    http(url('/api/admin/test-turso'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(adminKey ? { 'x-admin-key': adminKey } : {}) }, body: JSON.stringify({ url: u, token: t }) }),
 };
 

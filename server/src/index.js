@@ -257,3 +257,38 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => { console.log(`Server listening on port ${PORT}`); });
 
+// Admin endpoints
+app.get('/api/admin/health', async (req, res) => {
+  const ok = true;
+  const dbMode = db.isTurso ? 'turso' : 'sqlite';
+  try {
+    if (db.isTurso) {
+      await db.get('SELECT 1 as ok');
+    } else {
+      db.get('SELECT 1 as ok');
+    }
+    res.json({ ok, dbMode });
+  } catch (e) {
+    res.status(500).json({ ok: false, dbMode, error: String(e?.message || e) });
+  }
+});
+
+app.post('/api/admin/test-turso', async (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey && req.headers['x-admin-key'] !== adminKey) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const schema = z.object({ url: z.string().url(), token: z.string().min(1) });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json(parse.error.flatten());
+  const { url, token } = parse.data;
+  try {
+    const { createClient } = require('@libsql/client');
+    const client = createClient({ databaseUrl: url, authToken: token });
+    const r = await client.execute('SELECT 1 as ok');
+    res.json({ ok: true, result: r.rows?.[0] || null });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
