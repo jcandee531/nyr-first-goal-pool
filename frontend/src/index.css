@@ -24,7 +24,11 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: url('/msg-panorama.jpg') center/cover no-repeat fixed;
+  background: url('https://share.google/IEBIdJCEAeB09bxoO'), url('/msg-panorama.jpg');
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
+  background-size: cover, cover;
   filter: brightness(0.35);
   z-index: -1;
 }
