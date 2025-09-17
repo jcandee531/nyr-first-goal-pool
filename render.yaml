@@ -24,4 +24,4 @@ services:
         fromService:
           type: web
           name: nyr-pool-api
-          property: url
+          envVarKey: RENDER_EXTERNAL_URL
