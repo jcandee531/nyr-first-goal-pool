@@ -17,11 +17,11 @@ services:
     staticPublishPath: dist
     routes:
       - type: rewrite
-        source: /
+        source: /.*
         destination: /index.html
     envVars:
       - key: VITE_API_BASE
         fromService:
           type: web
           name: nyr-pool-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: url
