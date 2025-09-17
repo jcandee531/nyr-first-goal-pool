@@ -4,9 +4,42 @@ import { api, type Game } from '@api/client';
 export default function Schedule() {
   const [games, setGames] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<'server' | 'nhl'>('server');
 
   const refresh = async () => {
-    try { setGames(await api.listGames()); } catch (e:any) { setError(e.message); }
+    try {
+      const serverGames = await api.listGames();
+      if (serverGames.length > 0) {
+        setGames(serverGames);
+        setSource('server');
+        return;
+      }
+      // Fallback: fetch directly from NHL API client-side for display only
+      const season = '20252026';
+      const res = await fetch(`https://statsapi.web.nhl.com/api/v1/schedule?teamId=3&season=${season}`);
+      const data = await res.json();
+      const dates = data?.dates || [];
+      const out: Game[] = [] as any;
+      for (const d of dates) {
+        for (const g of d.games) {
+          const isHome = g.teams?.home?.team?.id === 3;
+          const opponentTeam = isHome ? g.teams?.away?.team : g.teams?.home?.team;
+          out.push({
+            id: g.gamePk,
+            date: g.gameDate,
+            opponent: opponentTeam?.name || 'TBD',
+            home: isHome ? 1 : 0,
+            status: g.status?.detailedState || 'SCHEDULED',
+            season,
+            double_points: 0,
+          } as Game);
+        }
+      }
+      setGames(out);
+      setSource('nhl');
+    } catch (e:any) {
+      setError(e.message);
+    }
   };
 
   useEffect(() => { refresh(); }, []);
@@ -26,6 +59,11 @@ export default function Schedule() {
   return (
     <div>
       <h2>Schedule</h2>
+      {source === 'nhl' && (
+        <div style={{ marginBottom: 8, color: '#555' }}>
+          Displaying live schedule from NHL API (read-only). Backend import unavailable.
+        </div>
+      )}
       {error && <div style={{ color: 'red' }}>{error}</div>}
       <table>
         <thead>
