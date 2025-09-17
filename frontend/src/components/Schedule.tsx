@@ -72,6 +72,11 @@ export default function Schedule() {
   return (
     <div>
       <h2>Schedule</h2>
+      <div style={{ marginBottom: 12 }}>
+        <a href="https://www.nhl.com/rangers/schedule" target="_blank" rel="noreferrer">View on NHL.com</a>
+        {' '}·{' '}
+        <a href="https://www.espn.com/nhl/team/schedule/_/name/nyr" target="_blank" rel="noreferrer">View on ESPN</a>
+      </div>
       {source === 'nhl' && (
         <div style={{ marginBottom: 8, color: '#555' }}>
           Displaying live schedule from NHL API (read-only). Backend import unavailable.
