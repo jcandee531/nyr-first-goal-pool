@@ -17,11 +17,11 @@ export default function App() {
         <img className="rangers-logo" alt="New York Rangers" src="https://upload.wikimedia.org/wikipedia/en/1/10/New_York_Rangers_logo.svg" />
       </div>
       <nav className="tab-nav">
-        <button onClick={() => setTab('dashboard')} disabled={tab==='dashboard'}>Dashboard</button>
-        <button onClick={() => setTab('picks')} disabled={tab==='picks'}>Picks</button>
-        <button onClick={() => setTab('participants')} disabled={tab==='participants'}>Participants</button>
-        <button onClick={() => setTab('schedule')} disabled={tab==='schedule'}>Schedule</button>
-        <button onClick={() => setTab('standings')} disabled={tab==='standings'}>Standings</button>
+        <button className={tab==='dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>Dashboard</button>
+        <button className={tab==='picks' ? 'active' : ''} onClick={() => setTab('picks')}>Picks</button>
+        <button className={tab==='participants' ? 'active' : ''} onClick={() => setTab('participants')}>Participants</button>
+        <button className={tab==='schedule' ? 'active' : ''} onClick={() => setTab('schedule')}>Schedule</button>
+        <button className={tab==='standings' ? 'active' : ''} onClick={() => setTab('standings')}>Standings</button>
       </nav>
       {tab === 'dashboard' && <Dashboard />}
       {tab === 'picks' && <Picks />}

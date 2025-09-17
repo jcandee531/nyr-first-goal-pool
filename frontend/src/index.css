@@ -30,7 +30,8 @@ button { border-radius: 8px; border: 2px solid var(--rangers-blue); padding: 0.5
 button:hover { border-color: var(--rangers-red); background-color: var(--rangers-red); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.site-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.site-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--rangers-blue); }
 .site-header h1 { margin: 0; color: var(--rangers-blue); }
 .rangers-logo { height: 56px; width: auto; }
 .tab-nav { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-nav button.active { background-color: var(--rangers-red); border-color: var(--rangers-red); }
