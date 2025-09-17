@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, Standing } from '@api/client';
+import { api, type Standing } from '@api/client';
 
 export default function Standings() {
   const [rows, setRows] = useState<Standing[]>([]);

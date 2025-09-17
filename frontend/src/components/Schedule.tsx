@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, Game } from '@api/client';
+import { api, type Game } from '@api/client';
 
 export default function Schedule() {
   const [season, setSeason] = useState('20242025');

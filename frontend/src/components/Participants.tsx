@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, Participant } from '@api/client';
+import { api, type Participant } from '@api/client';
 
 export default function Participants() {
   const [participants, setParticipants] = useState<Participant[]>([]);
