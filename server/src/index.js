@@ -3,7 +3,7 @@ const cors = require("cors");
 const dayjs = require("dayjs");
 const { z } = require("zod");
 const db = require("./db");
-const { fetchSeasonSchedule, fetchGameFeed, computeFirstScorerAndCounts, getActiveRosterForGame } = require("./nhl");
+const { fetchSeasonSchedule, fetchGameFeed, computeFirstScorerAndCounts, getActiveRosterForGame, loadStaticSchedule } = require("./nhl");
 
 const app = express();
 app.use(cors());
@@ -193,7 +193,8 @@ function mulberry32(a) {
 }
 
 async function upsertSeasonScheduleAndMarkDouble(season) {
-  const schedule = await fetchSeasonSchedule(season);
+  const staticSched = loadStaticSchedule(season);
+  const schedule = staticSched || await fetchSeasonSchedule(season);
   const insert = db.prepare("INSERT OR IGNORE INTO games (id, date, opponent, home, status, season, double_points) VALUES (?, ?, ?, ?, ?, ?, 0)\n");
   const update = db.prepare("UPDATE games SET date=?, opponent=?, home=?, status=?, season=? WHERE id=?");
   const txn = db.transaction(() => {

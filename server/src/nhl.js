@@ -1,5 +1,7 @@
 const axios = require("axios");
 const dayjs = require("dayjs");
+const fs = require("fs");
+const path = require("path");
 
 const RANGERS_TEAM_ID = 3;
 
@@ -103,4 +105,19 @@ async function getActiveRosterForGame(gamePk) {
 }
 
 module.exports = { fetchSeasonSchedule, fetchGameFeed, computeFirstScorerAndCounts, getActiveRosterForGame, RANGERS_TEAM_ID };
+
+// Load schedule from a bundled static JSON if available for a season
+function loadStaticSchedule(season) {
+  try {
+    const filePath = path.join(__dirname, `static_schedule_${season}.json`);
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      const games = JSON.parse(raw);
+      if (Array.isArray(games)) return games;
+    }
+  } catch (_e) { /* ignore */ }
+  return null;
+}
+
+module.exports.loadStaticSchedule = loadStaticSchedule;
 
