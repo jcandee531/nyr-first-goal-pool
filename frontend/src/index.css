@@ -19,7 +19,7 @@
 a { color: var(--rangers-blue); text-decoration: inherit; }
 a:hover { color: var(--rangers-red); }
 
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+body { margin: 0; min-width: 320px; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; }
 
 h1 {
   font-size: 3.2em;

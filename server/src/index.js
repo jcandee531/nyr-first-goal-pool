@@ -49,38 +49,8 @@ app.post('/api/games/import', async (req, res) => {
   if (!parse.success) return res.status(400).json(parse.error.flatten());
   const { season } = parse.data;
   try {
-    const schedule = await fetchSeasonSchedule(season);
-    const insert = db.prepare("INSERT OR IGNORE INTO games (id, date, opponent, home, status, season, double_points) VALUES (?, ?, ?, ?, ?, ?, 0)\n");
-    const update = db.prepare("UPDATE games SET date=?, opponent=?, home=?, status=?, season=? WHERE id=?");
-    const txn = db.transaction(() => {
-      for (const g of schedule) {
-        const existing = getGameById(g.id);
-        if (existing) {
-          update.run(g.date, g.opponent, g.home, g.status, g.season, g.id);
-        } else {
-          insert.run(g.id, g.date, g.opponent, g.home, g.status, g.season);
-        }
-      }
-    });
-    txn();
-
-    // Mark 5 random games as double-points per season, if not already set
-    const seasonGames = db.prepare("SELECT id FROM games WHERE season=? ORDER BY date").all(season).map(r => r.id);
-    const already = db.prepare("SELECT COUNT(1) as c FROM games WHERE season=? AND double_points=1").get(season).c;
-    if (seasonGames.length >= 5 && already < 5) {
-      // Choose deterministic random subset using season seed for stability
-      const seed = Number(season);
-      let rng = mulberry32(seed);
-      const picks = new Set();
-      while (picks.size < 5) {
-        const idx = Math.floor(rng() * seasonGames.length);
-        picks.add(seasonGames[idx]);
-      }
-      const mark = db.prepare("UPDATE games SET double_points=1 WHERE id=?");
-      const txn2 = db.transaction(() => { for (const id of picks) mark.run(id); });
-      txn2();
-    }
-    res.json({ imported: schedule.length });
+    const imported = await upsertSeasonScheduleAndMarkDouble(season);
+    res.json({ imported });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -222,6 +192,39 @@ function mulberry32(a) {
   }
 }
 
+async function upsertSeasonScheduleAndMarkDouble(season) {
+  const schedule = await fetchSeasonSchedule(season);
+  const insert = db.prepare("INSERT OR IGNORE INTO games (id, date, opponent, home, status, season, double_points) VALUES (?, ?, ?, ?, ?, ?, 0)\n");
+  const update = db.prepare("UPDATE games SET date=?, opponent=?, home=?, status=?, season=? WHERE id=?");
+  const txn = db.transaction(() => {
+    for (const g of schedule) {
+      const existing = getGameById(g.id);
+      if (existing) {
+        update.run(g.date, g.opponent, g.home, g.status, g.season, g.id);
+      } else {
+        insert.run(g.id, g.date, g.opponent, g.home, g.status, g.season);
+      }
+    }
+  });
+  txn();
+
+  const seasonGames = db.prepare("SELECT id FROM games WHERE season=? ORDER BY date").all(season).map(r => r.id);
+  const already = db.prepare("SELECT COUNT(1) as c FROM games WHERE season=? AND double_points=1").get(season).c;
+  if (seasonGames.length >= 5 && already < 5) {
+    const seed = Number(season);
+    let rng = mulberry32(seed);
+    const picks = new Set();
+    while (picks.size < 5) {
+      const idx = Math.floor(rng() * seasonGames.length);
+      picks.add(seasonGames[idx]);
+    }
+    const mark = db.prepare("UPDATE games SET double_points=1 WHERE id=?");
+    const txn2 = db.transaction(() => { for (const id of picks) mark.run(id); });
+    txn2();
+  }
+  return schedule.length;
+}
+
 app.get('/api/games/:gameId/roster', async (req, res) => {
   const gameId = Number(req.params.gameId);
   try {
@@ -238,7 +241,20 @@ app.get('/api/standings', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+// Import 2025-2026 season once at startup if missing
+(async () => {
+  const season = '20252026';
+  try {
+    const count = db.prepare("SELECT COUNT(1) as c FROM games WHERE season=?").get(season).c;
+    if (count === 0) {
+      console.log(`Importing Rangers schedule for season ${season}...`);
+      await upsertSeasonScheduleAndMarkDouble(season);
+      console.log(`Imported season ${season}.`);
+    }
+  } catch (e) {
+    console.error('Startup import failed', e);
+  }
+})();
+
+app.listen(PORT, () => { console.log(`Server listening on port ${PORT}`); });
 

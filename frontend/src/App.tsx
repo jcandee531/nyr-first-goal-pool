@@ -14,7 +14,7 @@ export default function App() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 16 }}>
       <div className="site-header">
         <h1>NY Rangers First Goal Pool</h1>
-        <img className="rangers-logo" alt="New York Rangers" src="https://upload.wikimedia.org/wikipedia/en/1/10/New_York_Rangers_logo.svg" />
+        <img className="rangers-logo" alt="New York Rangers" src="/rangers.svg" />
       </div>
       <nav className="tab-nav">
         <button className={tab==='dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>Dashboard</button>
