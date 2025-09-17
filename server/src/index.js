@@ -66,39 +66,39 @@ app.get('/api/games/upcoming', async (req, res) => {
   res.json(row || null);
 });
 
-function getPreviousGame(gameId) { return db.prepare("SELECT * FROM games WHERE date < (SELECT date FROM games WHERE id = ?) ORDER BY date DESC LIMIT 1").get(gameId); }
+async function getPreviousGame(gameId) { return await db.prepare("SELECT * FROM games WHERE date < (SELECT date FROM games WHERE id = ?) ORDER BY date DESC LIMIT 1").get(gameId); }
 
-function getWinnerOfGame(gameId) {
-  const result = db.prepare("SELECT * FROM results WHERE game_id = ?").get(gameId);
+async function getWinnerOfGame(gameId) {
+  const result = await db.prepare("SELECT * FROM results WHERE game_id = ?").get(gameId);
   if (!result || !result.first_scorer_id) return null;
-  const winner = db.prepare("SELECT p.participant_id FROM picks p WHERE p.game_id=? AND p.player_id=?").get(gameId, result.first_scorer_id);
+  const winner = await db.prepare("SELECT p.participant_id FROM picks p WHERE p.game_id=? AND p.player_id=?").get(gameId, result.first_scorer_id);
   return winner ? winner.participant_id : null;
 }
 
-function getBaseOrderSnake(gameId) {
+async function getBaseOrderSnake(gameId) {
   // Determine snake direction by game index (0-based) in season
-  const games = db.prepare("SELECT id FROM games WHERE season=(SELECT season FROM games WHERE id=?) ORDER BY date").all(gameId).map(r => r.id);
+  const games = (await db.prepare("SELECT id FROM games WHERE season=(SELECT season FROM games WHERE id=?) ORDER BY date").all(gameId)).map(r => r.id);
   const index = games.indexOf(gameId);
-  const participants = getParticipants();
+  const participants = await getParticipants();
   const ids = participants.map(p => p.id);
   const forward = index % 2 === 0;
   return forward ? ids : ids.slice().reverse();
 }
 
-function getDraftOrderForGame(gameId) {
-  const base = getBaseOrderSnake(gameId);
-  const prev = getPreviousGame(gameId);
+async function getDraftOrderForGame(gameId) {
+  const base = await getBaseOrderSnake(gameId);
+  const prev = await getPreviousGame(gameId);
   if (!prev) return base;
-  const winnerId = getWinnerOfGame(prev.id);
+  const winnerId = await getWinnerOfGame(prev.id);
   if (!winnerId) return base;
   // Winner picks first again. Place winner at front, keep relative order of others as in base
   const others = base.filter(id => id !== winnerId);
   return [winnerId, ...others];
 }
 
-app.get('/api/games/:gameId/draft-order', (req, res) => {
+app.get('/api/games/:gameId/draft-order', async (req, res) => {
   const gameId = Number(req.params.gameId);
-  const order = getDraftOrderForGame(gameId);
+  const order = await getDraftOrderForGame(gameId);
   res.json(order);
 });
 
@@ -116,7 +116,7 @@ app.post('/api/picks', async (req, res) => {
   const { gameId, participantId, playerId, playerName } = parse.data;
 
   // Enforce cannot pick same player two games in a row
-  const prev = getPreviousGame(gameId);
+  const prev = await getPreviousGame(gameId);
   if (prev) {
     const lastPick = await db.prepare("SELECT player_id FROM picks WHERE game_id=? AND participant_id=?").get(prev.id, participantId);
     if (lastPick && lastPick.player_id === playerId) {
