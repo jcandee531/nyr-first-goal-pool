@@ -56,3 +56,11 @@ Deployment (Render)
    - If using `render.yaml`, just connect the repo and “Blueprint” deploy; it wires `VITE_API_BASE` automatically
 5. After deploy, visit the frontend URL
 
+Production database (Turso)
+- Create a database in Turso (libSQL)
+- Get TURSO_URL and TURSO_AUTH_TOKEN
+- On Render API service env vars, set:
+  - TURSO_URL
+  - TURSO_AUTH_TOKEN
+- The server will use Turso in production and local file SQLite in dev
+

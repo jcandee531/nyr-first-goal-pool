@@ -9,35 +9,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-function getParticipants() {
-  return db.prepare("SELECT * FROM participants ORDER BY id").all();
+async function getParticipants() {
+  return await db.prepare("SELECT * FROM participants ORDER BY id").all();
 }
 
-function getLastCompletedGame() {
-  return db.prepare("SELECT * FROM games WHERE status IN ('Final', 'OFF') ORDER BY date DESC LIMIT 1").get();
+async function getLastCompletedGame() {
+  return await db.prepare("SELECT * FROM games WHERE status IN ('Final', 'OFF') ORDER BY date DESC LIMIT 1").get();
 }
 
-function getGameById(id) {
-  return db.prepare("SELECT * FROM games WHERE id = ?").get(id);
+function getGameById(id) { return db.prepare("SELECT * FROM games WHERE id = ?").get(id); }
+
+async function upsertStandings(participantId) {
+  await db.prepare("INSERT OR IGNORE INTO standings (participant_id, points) VALUES (?, 0)").run(participantId);
 }
 
-function upsertStandings(participantId) {
-  db.prepare("INSERT OR IGNORE INTO standings (participant_id, points) VALUES (?, 0)").run(participantId);
-}
-
-app.get('/api/participants', (req, res) => {
-  res.json(getParticipants());
+app.get('/api/participants', async (req, res) => {
+  res.json(await getParticipants());
 });
 
-app.post('/api/participants', (req, res) => {
+app.post('/api/participants', async (req, res) => {
   const schema = z.object({ name: z.string().min(1) });
   const parse = schema.safeParse(req.body);
   if (!parse.success) return res.status(400).json(parse.error.flatten());
   const { name } = parse.data;
   try {
-    const info = db.prepare("INSERT INTO participants (name) VALUES (?)").run(name);
-    upsertStandings(info.lastInsertRowid);
-    res.json({ id: Number(info.lastInsertRowid), name });
+    const info = await db.prepare("INSERT INTO participants (name) VALUES (?)").run(name);
+    await upsertStandings(info.lastInsertRowid || 0);
+    const created = await db.prepare("SELECT * FROM participants WHERE name=?").get(name);
+    res.json({ id: created?.id, name: created?.name });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -56,20 +55,18 @@ app.post('/api/games/import', async (req, res) => {
   }
 });
 
-app.get('/api/games', (req, res) => {
-  const rows = db.prepare("SELECT * FROM games ORDER BY date").all();
+app.get('/api/games', async (req, res) => {
+  const rows = await db.prepare("SELECT * FROM games ORDER BY date").all();
   res.json(rows);
 });
 
-app.get('/api/games/upcoming', (req, res) => {
+app.get('/api/games/upcoming', async (req, res) => {
   const now = dayjs().toISOString();
-  const row = db.prepare("SELECT * FROM games WHERE date >= ? ORDER BY date LIMIT 1").get(now);
+  const row = await db.prepare("SELECT * FROM games WHERE date >= ? ORDER BY date LIMIT 1").get(now);
   res.json(row || null);
 });
 
-function getPreviousGame(gameId) {
-  return db.prepare("SELECT * FROM games WHERE date < (SELECT date FROM games WHERE id = ?) ORDER BY date DESC LIMIT 1").get(gameId);
-}
+function getPreviousGame(gameId) { return db.prepare("SELECT * FROM games WHERE date < (SELECT date FROM games WHERE id = ?) ORDER BY date DESC LIMIT 1").get(gameId); }
 
 function getWinnerOfGame(gameId) {
   const result = db.prepare("SELECT * FROM results WHERE game_id = ?").get(gameId);
@@ -105,14 +102,14 @@ app.get('/api/games/:gameId/draft-order', (req, res) => {
   res.json(order);
 });
 
-app.get('/api/picks', (req, res) => {
+app.get('/api/picks', async (req, res) => {
   const gameId = Number(req.query.gameId);
   if (!gameId) return res.status(400).json({ error: 'gameId required' });
-  const rows = db.prepare("SELECT * FROM picks WHERE game_id=?").all(gameId);
+  const rows = await db.prepare("SELECT * FROM picks WHERE game_id=?").all(gameId);
   res.json(rows);
 });
 
-app.post('/api/picks', (req, res) => {
+app.post('/api/picks', async (req, res) => {
   const schema = z.object({ gameId: z.number(), participantId: z.number(), playerId: z.number(), playerName: z.string() });
   const parse = schema.safeParse(req.body);
   if (!parse.success) return res.status(400).json(parse.error.flatten());
@@ -121,23 +118,24 @@ app.post('/api/picks', (req, res) => {
   // Enforce cannot pick same player two games in a row
   const prev = getPreviousGame(gameId);
   if (prev) {
-    const lastPick = db.prepare("SELECT player_id FROM picks WHERE game_id=? AND participant_id=?").get(prev.id, participantId);
+    const lastPick = await db.prepare("SELECT player_id FROM picks WHERE game_id=? AND participant_id=?").get(prev.id, participantId);
     if (lastPick && lastPick.player_id === playerId) {
       return res.status(400).json({ error: 'Cannot pick same player two games in a row' });
     }
   }
 
   // Lock: if already picked for this game, disallow new pick
-  const existing = db.prepare("SELECT 1 FROM picks WHERE game_id=? AND participant_id=?").get(gameId, participantId);
+  const existing = await db.prepare("SELECT 1 FROM picks WHERE game_id=? AND participant_id=?").get(gameId, participantId);
   if (existing) {
     return res.status(400).json({ error: 'Pick already submitted for this game' });
   }
 
   try {
-    const info = db.prepare("INSERT INTO picks (game_id, participant_id, player_id, player_name) VALUES (?, ?, ?, ?)").run(gameId, participantId, playerId, playerName);
-    db.prepare("INSERT OR IGNORE INTO standings (participant_id, points) VALUES (?, 0)").run(participantId);
-    db.prepare("UPDATE standings SET last_pick_player_id=?, last_pick_game_id=? WHERE participant_id=?").run(playerId, gameId, participantId);
-    res.json({ id: Number(info.lastInsertRowid) });
+    await db.prepare("INSERT INTO picks (game_id, participant_id, player_id, player_name) VALUES (?, ?, ?, ?)").run(gameId, participantId, playerId, playerName);
+    await db.prepare("INSERT OR IGNORE INTO standings (participant_id, points) VALUES (?, 0)").run(participantId);
+    await db.prepare("UPDATE standings SET last_pick_player_id=?, last_pick_game_id=? WHERE participant_id=?").run(playerId, gameId, participantId);
+    const created = await db.prepare("SELECT id FROM picks WHERE game_id=? AND participant_id=?").get(gameId, participantId);
+    res.json({ id: created?.id });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -148,32 +146,32 @@ app.post('/api/games/:gameId/compute', async (req, res) => {
   try {
     const feed = await fetchGameFeed(gameId);
     const { firstGoal, counts } = computeFirstScorerAndCounts(feed);
-    db.prepare("INSERT OR REPLACE INTO results (game_id, first_scorer_id, first_scorer_name, first_goal_team, player_goal_counts_json) VALUES (?, ?, ?, ?, ?)").run(
+    await db.prepare("INSERT OR REPLACE INTO results (game_id, first_scorer_id, first_scorer_name, first_goal_team, player_goal_counts_json) VALUES (?, ?, ?, ?, ?)").run(
       gameId, firstGoal?.player_id || null, firstGoal?.player_name || null, firstGoal?.team || null, JSON.stringify(counts)
     );
 
     // Award points
-    const isDouble = !!db.prepare("SELECT double_points FROM games WHERE id=?").get(gameId)?.double_points;
+    const isDouble = !!(await db.prepare("SELECT double_points FROM games WHERE id=?").get(gameId))?.double_points;
     const multiplier = isDouble ? 2 : 1;
-    const picks = db.prepare("SELECT * FROM picks WHERE game_id=?").all(gameId);
-    const award = db.prepare("UPDATE standings SET points = points + ? WHERE participant_id=?");
+    const picks = await db.prepare("SELECT * FROM picks WHERE game_id=?").all(gameId);
+    const award = (points, pid) => db.prepare("UPDATE standings SET points = points + ? WHERE participant_id=?").run(points, pid);
     for (const pick of picks) {
       const goals = counts[pick.player_id] || 0;
       let add = 0;
       if (firstGoal && pick.player_id === firstGoal.player_id) {
         // 3 for first goal, plus 1 for each additional goal beyond the first
         add = (3 + Math.max(0, goals - 1)) * multiplier;
-        db.prepare("UPDATE standings SET last_correct_first_scorer_game_id=? WHERE participant_id=?").run(gameId, pick.participant_id);
+        await db.prepare("UPDATE standings SET last_correct_first_scorer_game_id=? WHERE participant_id=?").run(gameId, pick.participant_id);
       } else {
         add = goals * multiplier; // 1 per goal if not first scorer
       }
-      if (add > 0) award.run(add, pick.participant_id);
+      if (add > 0) await award(add, pick.participant_id);
     }
 
     // Update game status to Final if feed says final
     const detailedState = feed.gameData?.status?.detailedState || '';
     if (detailedState) {
-      db.prepare("UPDATE games SET status=? WHERE id=?").run(detailedState, gameId);
+      await db.prepare("UPDATE games SET status=? WHERE id=?").run(detailedState, gameId);
     }
 
     res.json({ ok: true, firstGoal, counts });
@@ -236,8 +234,8 @@ app.get('/api/games/:gameId/roster', async (req, res) => {
   }
 });
 
-app.get('/api/standings', (req, res) => {
-  const rows = db.prepare("SELECT p.id, p.name, s.points FROM participants p LEFT JOIN standings s ON s.participant_id = p.id ORDER BY s.points DESC, p.id ASC").all();
+app.get('/api/standings', async (req, res) => {
+  const rows = await db.prepare("SELECT p.id, p.name, s.points FROM participants p LEFT JOIN standings s ON s.participant_id = p.id ORDER BY s.points DESC, p.id ASC").all();
   res.json(rows.map(r => ({ id: r.id, name: r.name, points: r.points || 0 })));
 });
 
