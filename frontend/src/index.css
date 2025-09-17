@@ -20,6 +20,15 @@ a { color: var(--rangers-blue); text-decoration: inherit; }
 a:hover { color: var(--rangers-red); }
 
 body { margin: 0; min-width: 320px; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url('/msg-panorama.jpg') center/cover no-repeat fixed;
+  filter: brightness(0.35);
+  z-index: -1;
+}
+.content { backdrop-filter: blur(2px); }
 
 h1 {
   font-size: 3.2em;

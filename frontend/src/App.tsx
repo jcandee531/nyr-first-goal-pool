@@ -11,10 +11,16 @@ type Tab = 'dashboard' | 'picks' | 'participants' | 'schedule' | 'standings'
 export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 16 }}>
+    <div className="content" style={{ maxWidth: 900, margin: '0 auto', padding: 16, textAlign: 'center' }}>
       <div className="site-header">
         <h1>NY Rangers First Goal Pool</h1>
-        <img className="rangers-logo" alt="New York Rangers" src="/rangers.svg" />
+        <img
+          className="rangers-logo"
+          alt="New York Rangers"
+          referrerPolicy="no-referrer"
+          src="https://upload.wikimedia.org/wikipedia/en/1/10/New_York_Rangers_logo.svg"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/rangers.svg' }}
+        />
       </div>
       <nav className="tab-nav">
         <button className={tab==='dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>Dashboard</button>
